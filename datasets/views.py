@@ -24,29 +24,28 @@ class DatasetViewSet(viewsets.ModelViewSet):
         return Dataset.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
-        dataset = serializer.save(user=self.request.user)
-        self._process_dataset(dataset)
-    
-    def _process_dataset(self, dataset):
-        """Process uploaded dataset to extract metadata."""
+        """Process uploaded dataset and store in database."""
         try:
-            if dataset.file_type.lower() == 'csv':
-                df = pd.read_csv(dataset.file.path)
-            elif dataset.file_type.lower() in ['xlsx', 'excel']:
-                df = pd.read_excel(dataset.file.path)
-            else:
-                raise ValueError(f"Unsupported file type: {dataset.file_type}")
+            file = self.request.FILES['file']
+            file_type = 'csv' if file.name.endswith('.csv') else 'excel'
             
-            # Update dataset metadata
-            dataset.columns = [
-                {'name': col, 'type': str(df[col].dtype)}
-                for col in df.columns
-            ]
-            dataset.row_count = len(df)
+            # Read the dataset
+            if file.name.endswith('.csv'):
+                df = pd.read_csv(file)
+            else:
+                df = pd.read_excel(file)
+            
+            # Create dataset instance
+            dataset = serializer.save(user=self.request.user)
+            
+            # Store data in database with file type
+            dataset.set_data_from_df(df, file_type=file_type)
             dataset.save()
             
         except Exception as e:
-            dataset.delete()
+            # If anything goes wrong, delete the dataset
+            if 'dataset' in locals():
+                dataset.delete()
             raise ValueError(f"Error processing dataset: {str(e)}")
     
     @action(detail=True, methods=['get'])
@@ -54,11 +53,8 @@ class DatasetViewSet(viewsets.ModelViewSet):
         """Get dataset overview including statistics and sample data."""
         dataset = self.get_object()
         try:
-            # Read the dataset
-            if dataset.file_type.lower() == 'csv':
-                df = pd.read_csv(dataset.file.path)
-            else:
-                df = pd.read_excel(dataset.file.path)
+            # Get dataset as DataFrame
+            df = dataset.get_data_as_df()
             
             # Get column information with indices
             columns_info = []
@@ -76,6 +72,7 @@ class DatasetViewSet(viewsets.ModelViewSet):
             info = {
                 'total_rows': len(df),
                 'total_columns': len(df.columns),
+                'file_type': dataset.file_type,
                 'columns_info': columns_info,
                 'column_names': df.columns.tolist(),
                 'dtypes': df.dtypes.astype(str).to_dict(),
@@ -140,11 +137,8 @@ class DatasetViewSet(viewsets.ModelViewSet):
         operations = request.data.get('operations', [])
         
         try:
-            # Read the dataset
-            if dataset.file_type.lower() == 'csv':
-                df = pd.read_csv(dataset.file.path)
-            else:
-                df = pd.read_excel(dataset.file.path)
+            # Get dataset as DataFrame
+            df = dataset.get_data_as_df()
             
             # Apply cleaning operations
             for operation in operations:
@@ -264,28 +258,14 @@ class DatasetViewSet(viewsets.ModelViewSet):
                     if n_rows:
                         df = df.sample(n=min(n_rows, len(df)), random_state=random_state)
             
-            # Save the cleaned dataset
-            buffer = StringIO()
-            if dataset.file_type.lower() == 'csv':
-                df.to_csv(buffer, index=False)
-            else:
-                df.to_excel(buffer, index=False)
-            
-            # Update the file
-            buffer.seek(0)
-            content = ContentFile(buffer.getvalue().encode('utf-8'))
-            
-            # Generate new filename using the model's method
-            new_filename = dataset.get_new_filename(prefix='cleaned')
-            dataset.file.save(new_filename, content, save=True)
-            
-            # Update metadata
-            dataset.columns = [
-                {'name': col, 'type': str(df[col].dtype)}
-                for col in df.columns
-            ]
-            dataset.row_count = len(df)
-            dataset.save()
+            # Create new dataset version
+            new_dataset = Dataset.objects.create(
+                name=f"{dataset.name}_cleaned",
+                description=f"Cleaned version of {dataset.name}",
+                user=dataset.user
+            )
+            new_dataset.set_data_from_df(df)
+            new_dataset.save()
             
             return Response({
                 'message': 'Dataset cleaned successfully',
@@ -307,7 +287,10 @@ class DatasetViewSet(viewsets.ModelViewSet):
         original_columns = request.data.get('original_columns', [])
         
         try:
-            df = pd.read_csv(dataset.file.path)
+            # Get dataset as DataFrame
+            df = dataset.get_data_as_df()
+            
+            # Apply feature engineering operations
             new_columns = []
             
             for operation in operations:
@@ -429,23 +412,14 @@ class DatasetViewSet(viewsets.ModelViewSet):
                         df[new_column] = df.groupby(group_column)[value_column].transform('max')
                     new_columns.append(new_column)
             
-            # Save the updated dataset with a new filename
-            new_filename = dataset.get_new_filename(prefix='featured')
-            
-            # Save to CSV
-            buffer = StringIO()
-            df.to_csv(buffer, index=False)
-            buffer.seek(0)
-            content = ContentFile(buffer.getvalue().encode('utf-8'))
-            dataset.file.save(new_filename, content, save=True)
-            
-            # Update metadata
-            dataset.columns = [
-                {'name': col, 'type': str(df[col].dtype)}
-                for col in df.columns
-            ]
-            dataset.row_count = len(df)
-            dataset.save()
+            # Create new dataset version
+            new_dataset = Dataset.objects.create(
+                name=f"{dataset.name}_featured",
+                description=f"Feature engineered version of {dataset.name}",
+                user=dataset.user
+            )
+            new_dataset.set_data_from_df(df)
+            new_dataset.save()
             
             return Response({
                 'message': 'Features created successfully',
@@ -468,7 +442,7 @@ class DatasetViewSet(viewsets.ModelViewSet):
         
         try:
             # Read the dataset
-            df = pd.read_csv(dataset.file.path) if dataset.file_type.lower() == 'csv' else pd.read_excel(dataset.file.path)
+            df = dataset.get_data_as_df()
             
             # Create figure with appropriate size
             plt.figure(figsize=(12, 8))

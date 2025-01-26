@@ -110,26 +110,65 @@ def landing_page():
 def login_page():
     st.header("Login")
     
-    with st.form("login_form"):
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        
-        if st.form_submit_button("Login"):
-            try:
-                response = requests.post(
-                    f"{API_BASE_URL}/auth/login/",
-                    json={"username": username, "password": password}
-                )
-                
-                if response.status_code == 200:
-                    st.session_state.auth_token = response.json()['token']
-                    st.session_state.user_info = {'username': username}
-                    st.success("Login successful!")
-                    st.rerun()
+    # Add tabs for login and registration
+    tab1, tab2 = st.tabs(["Login", "Register"])
+    
+    # Login tab
+    with tab1:
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            
+            if st.form_submit_button("Login"):
+                try:
+                    response = requests.post(
+                        f"{API_BASE_URL}/auth/login/",
+                        json={"username": username, "password": password}
+                    )
+                    
+                    if response.status_code == 200:
+                        st.session_state.auth_token = response.json()['token']
+                        st.session_state.user_info = {'username': username}
+                        st.success("Login successful!")
+                        st.rerun()
+                    else:
+                        st.error("Invalid credentials")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+    
+    # Registration tab
+    with tab2:
+        with st.form("registration_form"):
+            new_username = st.text_input("Username")
+            new_email = st.text_input("Email")
+            new_password = st.text_input("Password", type="password")
+            confirm_password = st.text_input("Confirm Password", type="password")
+            
+            if st.form_submit_button("Register"):
+                if not new_username or not new_password:
+                    st.error("Please provide both username and password")
+                elif new_password != confirm_password:
+                    st.error("Passwords do not match")
                 else:
-                    st.error("Invalid credentials")
-            except Exception as e:
-                st.error(f"Error: {str(e)}")
+                    try:
+                        response = requests.post(
+                            f"{API_BASE_URL}/auth/register/",
+                            json={
+                                "username": new_username,
+                                "email": new_email,
+                                "password": new_password
+                            }
+                        )
+                        
+                        if response.status_code == 201:
+                            st.session_state.auth_token = response.json()['token']
+                            st.session_state.user_info = {'username': new_username}
+                            st.success("Registration successful! You are now logged in.")
+                            st.rerun()
+                        else:
+                            st.error(f"Registration failed: {response.json().get('error', 'Unknown error')}")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
 
 def get_headers():
     auth_token = get_session()
@@ -312,10 +351,11 @@ def dataset_overview_page():
                     with col2:
                         st.metric("Total Columns", overview_data['info']['total_columns'])
                     with col3:
-                        st.metric("File Type", selected_dataset['file_type'].upper())
+                        st.metric("File Type", overview_data['info']['file_type'].upper())
                     with col4:
                         total_missing = sum(overview_data['info']['missing_values'].values())
-                        missing_percentage = (total_missing / (overview_data['info']['total_rows'] * overview_data['info']['total_columns']) * 100)
+                        total_cells = overview_data['info']['total_rows'] * overview_data['info']['total_columns']
+                        missing_percentage = (total_missing / total_cells * 100) if total_cells > 0 else 0
                         st.metric("Missing Values", f"{total_missing} ({missing_percentage:.2f}%)")
                     
                     # Additional dataset information
@@ -362,7 +402,10 @@ def dataset_overview_page():
                             overview_data['info']['missing_values'].items(),
                             columns=['Column', 'Missing Count']
                         )
-                        missing_data['Missing Percentage'] = (missing_data['Missing Count'] / overview_data['info']['total_rows'] * 100).round(2)
+                        total_rows = overview_data['info']['total_rows']
+                        missing_data['Missing Percentage'] = missing_data['Missing Count'].apply(
+                            lambda x: (x / total_rows * 100) if total_rows > 0 else 0
+                        ).round(2)
                         missing_data = missing_data.sort_values('Missing Percentage', ascending=False)
                         st.dataframe(missing_data, use_container_width=True)
                         
@@ -460,7 +503,8 @@ def dataset_overview_page():
                                     with col3:
                                         st.markdown("#### Missing Values")
                                         missing_count = overview_data['info']['missing_values'].get(col, 0)
-                                        missing_percentage = (missing_count / overview_data['info']['total_rows']) * 100
+                                        total_rows = overview_data['info']['total_rows']
+                                        missing_percentage = (missing_count / total_rows * 100) if total_rows > 0 else 0
                                         st.metric("Missing Count", missing_count)
                                         st.metric("Missing Percentage", f"{missing_percentage:.2f}%")
                                         
