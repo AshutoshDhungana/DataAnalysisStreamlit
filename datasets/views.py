@@ -258,17 +258,19 @@ class DatasetViewSet(viewsets.ModelViewSet):
                     if n_rows:
                         df = df.sample(n=min(n_rows, len(df)), random_state=random_state)
             
-            # Create new dataset version
-            new_dataset = Dataset.objects.create(
-                name=f"{dataset.name}_cleaned",
-                description=f"Cleaned version of {dataset.name}",
-                user=dataset.user
+            # Create new version of the same dataset
+            new_version = Dataset.objects.create(
+                name=dataset.name,
+                description=f"Version {dataset.version + 1}: Cleaned dataset",
+                user=dataset.user,
+                version=dataset.version + 1
             )
-            new_dataset.set_data_from_df(df)
-            new_dataset.save()
+            new_version.set_data_from_df(df)
+            new_version.save()
             
             return Response({
                 'message': 'Dataset cleaned successfully',
+                'version': new_version.version,
                 'rows': len(df),
                 'columns': list(df.columns)
             })
@@ -323,7 +325,28 @@ class DatasetViewSet(viewsets.ModelViewSet):
                                 'pd': pd,
                                 'np': np,
                                 'df': df[col],
-                                'result': None
+                                'result': None,
+                                '__builtins__': {
+                                    'abs': abs,
+                                    'all': all,
+                                    'any': any,
+                                    'len': len,
+                                    'max': max,
+                                    'min': min,
+                                    'pow': pow,
+                                    'round': round,
+                                    'sum': sum,
+                                    'range': range,
+                                    'zip': zip,
+                                    'float': float,
+                                    'int': int,
+                                    'str': str,
+                                    'bool': bool,
+                                    'list': list,
+                                    'dict': dict,
+                                    'tuple': tuple,
+                                    'set': set,
+                                }
                             }
                             
                             # Execute the custom code in the safe namespace
@@ -412,17 +435,19 @@ class DatasetViewSet(viewsets.ModelViewSet):
                         df[new_column] = df.groupby(group_column)[value_column].transform('max')
                     new_columns.append(new_column)
             
-            # Create new dataset version
-            new_dataset = Dataset.objects.create(
-                name=f"{dataset.name}_featured",
-                description=f"Feature engineered version of {dataset.name}",
-                user=dataset.user
+            # Create new version of the same dataset
+            new_version = Dataset.objects.create(
+                name=dataset.name,
+                description=f"Version {dataset.version + 1}: Added features {', '.join(new_columns)}",
+                user=dataset.user,
+                version=dataset.version + 1
             )
-            new_dataset.set_data_from_df(df)
-            new_dataset.save()
+            new_version.set_data_from_df(df)
+            new_version.save()
             
             return Response({
                 'message': 'Features created successfully',
+                'version': new_version.version,
                 'new_columns': new_columns
             })
         
@@ -430,6 +455,33 @@ class DatasetViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['get'])
+    def versions(self, request, pk=None):
+        """Get all versions of a dataset."""
+        dataset = self.get_object()
+        try:
+            # Get all versions of this dataset by name
+            versions = Dataset.objects.filter(
+                name=dataset.name,
+                user=dataset.user
+            ).order_by('-version')
+            
+            return Response({
+                'versions': [{
+                    'id': v.id,
+                    'version': v.version,
+                    'description': v.description,
+                    'updated_at': v.updated_at,
+                    'row_count': v.row_count,
+                } for v in versions]
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @action(detail=True, methods=['post'])
     def generate_plot(self, request, pk=None):
@@ -596,6 +648,58 @@ class DatasetViewSet(viewsets.ModelViewSet):
                 'plot': plot_base64,
                 'statistics': statistics
             })
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=True, methods=['get'])
+    def download_dataset(self, request, pk=None):
+        """Download dataset in specified format."""
+        dataset = self.get_object()
+        file_format = request.query_params.get('format', 'csv').lower()
+        
+        try:
+            # Get dataset as DataFrame
+            df = dataset.get_data_as_df()
+            
+            # Create buffer for file
+            buffer = BytesIO()
+            
+            # Export based on format
+            if file_format == 'csv':
+                df.to_csv(buffer, index=False)
+                content_type = 'text/csv'
+                file_extension = 'csv'
+            elif file_format == 'excel':
+                df.to_excel(buffer, index=False)
+                content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                file_extension = 'xlsx'
+            elif file_format == 'json':
+                df.to_json(buffer, orient='records')
+                content_type = 'application/json'
+                file_extension = 'json'
+            else:
+                return Response(
+                    {'error': 'Unsupported format'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Prepare response
+            buffer.seek(0)
+            response = Response(
+                buffer.getvalue(),
+                content_type=content_type,
+                status=status.HTTP_200_OK
+            )
+            
+            # Set filename in header
+            filename = f"{dataset.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_extension}"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
             
         except Exception as e:
             return Response(

@@ -33,79 +33,160 @@ def refresh_page():
     st.rerun()
 
 def landing_page():
-    st.title("📊 Welcome to Data Analysis Platform")
-    
-    # Hero section
+    # Custom CSS for better styling
     st.markdown("""
-    ### Transform Your Data into Insights
-    Upload your datasets and create beautiful visualizations with just a few clicks.
-    No coding required!
-    """)
+        <style>
+        .main-header {
+            font-size: 3rem !important;
+            font-weight: 700;
+            color: #1E88E5;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .sub-header {
+            font-size: 1.5rem;
+            color: #424242;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .feature-card {
+            padding: 1.5rem;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            margin: 1rem 0;
+        }
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #1E88E5;
+        }
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #212121;
+            margin-bottom: 0.5rem;
+        }
+        .feature-text {
+            color: #616161;
+            font-size: 1rem;
+        }
+        .cta-button {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        .workflow-step {
+            padding: 1rem;
+            background-color: #f1f8ff;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            color: #000000;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
-    # Features section
+    # Hero Section
+    st.markdown('<h1 class="main-header">🚀 Data Analysis Platform</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Transform Your Data into Actionable Insights</p>', unsafe_allow_html=True)
+    
+    # Quick Action Buttons
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown('<div class="cta-button">', unsafe_allow_html=True)
+        if st.button("🎯 Get Started", use_container_width=True):
+            st.session_state.page = "login"
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Main Features Section
     st.markdown("---")
-    st.header("✨ Features")
+    st.markdown('<h2 style="text-align: center; color: #1E88E5;">✨ Key Features</h2>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("""
-        #### 📈 Rich Visualizations
-        - Bar plots
-        - Line plots
-        - Scatter plots
-        - Histograms
-        - Box plots
-        - Violin plots
-        - Pie charts
-        - And more!
-        """)
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">Interactive Visualizations</div>
+                <div class="feature-text">
+                    • Beautiful charts and graphs<br>
+                    • Real-time data exploration<br>
+                    • Customizable plots<br>
+                    • Export capabilities<br>
+                    • Statistical insights
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
-        #### 🔒 Secure & Private
-        - User authentication
-        - Private datasets
-        - Secure data storage
-        - Data encryption
-        """)
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <div class="feature-title">Advanced Analytics</div>
+                <div class="feature-text">
+                    • Data cleaning tools<br>
+                    • Feature engineering<br>
+                    • Statistical analysis<br>
+                    • Pattern detection<br>
+                    • Version control
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
-        #### 🚀 Easy to Use
-        - Intuitive interface
-        - No coding required
-        - Interactive plots
-        - Real-time updates
-        """)
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <div class="feature-title">Enterprise Ready</div>
+                <div class="feature-text">
+                    • Secure data handling<br>
+                    • User authentication<br>
+                    • Multiple file formats<br>
+                    • Data versioning<br>
+                    • Collaborative features
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
     
-    # Call to action
+    # How It Works Section
     st.markdown("---")
-    st.markdown("### Ready to Start?")
+    st.markdown('<h2 style="text-align: center; color: #1E88E5;">🔄 How It Works</h2>', unsafe_allow_html=True)
     
-    col1, col2, _ = st.columns([1, 1, 2])
+    workflow_steps = [
+        ("📤 Upload Your Data", "Support for CSV, Excel, and JSON formats"),
+        ("🔧 Clean & Transform", "Powerful tools for data cleaning and feature engineering"),
+        ("📊 Visualize", "Create stunning visualizations with a few clicks"),
+        ("📈 Analyze", "Get deep insights with statistical analysis"),
+        ("💾 Export & Share", "Download results in your preferred format")
+    ]
     
-    with col1:
-        if st.button("Login"):
+    for icon, text in workflow_steps:
+        st.markdown(f"""
+            <div class="workflow-step">
+                <b style="color: #000000;">{icon}</b> <span style="color: #000000;">{text}</span>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Call to Action Section
+    st.markdown("---")
+    st.markdown('<h2 style="text-align: center; color: #1E88E5;">🎯 Ready to Start?</h2>', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown('<div class="cta-button">', unsafe_allow_html=True)
+        if st.button("👋 Sign Up Now", use_container_width=True):
             st.session_state.page = "login"
             st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col2:
-        if st.button("Learn More"):
-            st.markdown("""
-            ### How It Works
-            1. **Upload** your CSV or Excel files
-            2. **Select** the type of visualization
-            3. **Customize** your plots
-            4. **Share** your insights
-            
-            ### Supported File Types
-            - CSV files (.csv)
-            - Excel files (.xlsx)
-            
-            ### Need Help?
-            Contact our support team for assistance.
-            """)
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+        <div style="text-align: center; color: #666;">
+            <p>🔒 Secure Data Handling • 🚀 Real-time Analysis • 💡 Instant Insights</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 def login_page():
     st.header("Login")
@@ -334,6 +415,28 @@ def dataset_overview_page():
             )
             
             if selected_dataset:
+                # Get dataset versions
+                versions_response = requests.get(
+                    f"{API_BASE_URL}/datasets/{selected_dataset['id']}/versions/",
+                    headers=get_headers()
+                )
+                
+                if versions_response.status_code == 200:
+                    versions = versions_response.json()['versions']
+                    
+                    # Version selection in sidebar
+                    st.sidebar.markdown("### 📝 Version Control")
+                    selected_version = st.sidebar.selectbox(
+                        "Select Version",
+                        options=versions,
+                        format_func=lambda x: f"Version {x['version']}: {x['description']}",
+                        index=0  # Latest version by default
+                    )
+                    
+                    if selected_version:
+                        # Update selected_dataset id to the selected version
+                        selected_dataset['id'] = selected_version['id']
+                
                 # Get dataset overview
                 overview_response = requests.get(
                     f"{API_BASE_URL}/datasets/{selected_dataset['id']}/overview/",
@@ -357,6 +460,45 @@ def dataset_overview_page():
                         total_cells = overview_data['info']['total_rows'] * overview_data['info']['total_columns']
                         missing_percentage = (total_missing / total_cells * 100) if total_cells > 0 else 0
                         st.metric("Missing Values", f"{total_missing} ({missing_percentage:.2f}%)")
+                    
+                    # Add download section
+                    st.markdown("### 📥 Download Dataset")
+                    download_col1, download_col2 = st.columns([2, 1])
+                    with download_col1:
+                        download_format = st.selectbox(
+                            "Select Format",
+                            ["CSV", "Excel", "JSON"],
+                            key="download_format"
+                        )
+                    with download_col2:
+                        if st.button("Download Dataset"):
+                            try:
+                                # Get the download URL
+                                download_url = f"{API_BASE_URL}/datasets/{selected_dataset['id']}/download_dataset/?format={download_format.lower()}"
+                                
+                                # Make the request with authentication
+                                response = requests.get(
+                                    download_url,
+                                    headers=get_headers(),
+                                    stream=True
+                                )
+                                
+                                if response.status_code == 200:
+                                    # Get filename from response headers
+                                    content_disposition = response.headers.get('content-disposition', '')
+                                    filename = content_disposition.split('filename=')[-1].strip('"')
+                                    
+                                    # Create download button
+                                    st.download_button(
+                                        label=f"Click to save {download_format} file",
+                                        data=response.content,
+                                        file_name=filename,
+                                        mime=response.headers.get('content-type', 'application/octet-stream')
+                                    )
+                                else:
+                                    st.error(f"Error downloading dataset: {response.text}")
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
                     
                     # Additional dataset information
                     st.markdown("### 📈 Dataset Statistics")
@@ -982,21 +1124,65 @@ def feature_engineering_page():
                                 label="Select column"
                             )
                             
-                            function = st.selectbox(
-                                "Select function",
-                                ["length", "lowercase", "uppercase", "log", "sqrt", 
-                                 "square", "absolute", "year", "month", "day", "hour"]
+                            function_type = st.selectbox(
+                                "Select function type",
+                                ["Built-in Functions", "Custom Python Function"]
                             )
                             
-                            if new_column and col:
-                                feature_operations.append({
-                                    'type': 'apply_function',
-                                    'params': {
-                                        'new_column': new_column,
-                                        'column': col,
-                                        'function': function
-                                    }
-                                })
+                            if function_type == "Built-in Functions":
+                                function = st.selectbox(
+                                    "Select function",
+                                    ["length", "lowercase", "uppercase", "log", "sqrt", 
+                                     "square", "absolute", "year", "month", "day", "hour"]
+                                )
+                                
+                                if new_column and col:
+                                    feature_operations.append({
+                                        'type': 'apply_function',
+                                        'params': {
+                                            'new_column': new_column,
+                                            'column': col,
+                                            'function': function
+                                        }
+                                    })
+                            else:
+                                st.markdown("""
+                                    ### Write Your Custom Function
+                                    Write a Python function that takes a pandas Series as input and returns a transformed Series.
+                                    
+                                    Available variables:
+                                    - `df`: The input Series (the selected column)
+                                    - `np`: NumPy library
+                                    - `pd`: Pandas library
+                                    
+                                    Your code should set the `result` variable with the transformed data.
+                                    
+                                    Example:
+                                    ```python
+                                    # Calculate moving average
+                                    result = df.rolling(window=3).mean()
+                                    
+                                    # Or custom transformation
+                                    result = df.apply(lambda x: x * 2 if x > 0 else x / 2)
+                                    ```
+                                """)
+                                
+                                custom_code = st.text_area(
+                                    "Custom Function Code",
+                                    height=200,
+                                    help="Write your custom Python code here. Use 'result = ' to store the final output."
+                                )
+                                
+                                if new_column and col and custom_code:
+                                    feature_operations.append({
+                                        'type': 'apply_function',
+                                        'params': {
+                                            'new_column': new_column,
+                                            'column': col,
+                                            'function': 'custom',
+                                            'custom_code': custom_code
+                                        }
+                                    })
                         
                         elif option == "Binning":
                             new_column = st.text_input("New column name", key="bin_name")
@@ -1148,6 +1334,28 @@ def visualize_data_page():
             )
             
             if selected_dataset:
+                # Get dataset versions
+                versions_response = requests.get(
+                    f"{API_BASE_URL}/datasets/{selected_dataset['id']}/versions/",
+                    headers=get_headers()
+                )
+                
+                if versions_response.status_code == 200:
+                    versions = versions_response.json()['versions']
+                    
+                    # Version selection in sidebar
+                    st.sidebar.markdown("### 📝 Version Control")
+                    selected_version = st.sidebar.selectbox(
+                        "Select Version",
+                        options=versions,
+                        format_func=lambda x: f"Version {x['version']}: {x['description']}",
+                        index=0  # Latest version by default
+                    )
+                    
+                    if selected_version:
+                        # Update selected_dataset id to the selected version
+                        selected_dataset['id'] = selected_version['id']
+                
                 # Get dataset details
                 dataset_id = selected_dataset['id']
                 columns = selected_dataset['columns']
